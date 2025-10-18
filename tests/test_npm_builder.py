@@ -27,15 +27,28 @@ def test_npm_builder(mocker, repo):
     )
 
 
-def test_npm_build_skip(mocker, repo):
+@pytest.mark.parametrize(
+    ("env_name", "env_value", "kwargs"),
+    [
+        ("HATCH_JUPYTER_BUILDER_SKIP_NPM", "1", {}),
+        ("TEST_CUSTOM_SKIP_NPM_TRUE", "True", {"skip_if_env": "TEST_CUSTOM_SKIP_NPM_TRUE"}),
+        ("TEST_CUSTOM_SKIP_NPM_YES", "yEs", {"skip_if_env": "TEST_CUSTOM_SKIP_NPM_YES"}),
+    ],
+)
+def test_npm_build_skip_env(mocker, repo, env_name, env_value, kwargs):
     which = mocker.patch("hatch_jupyter_builder.utils.which")
     run = mocker.patch("hatch_jupyter_builder.utils.run")
-    os.environ["HATCH_JUPYTER_BUILDER_SKIP_NPM"] = "1"
+    os.environ[env_name] = env_value
     which.return_value = "foo"
-    npm_builder("wheel", "standard", path=repo)
+    npm_builder("wheel", "standard", path=repo, **kwargs)
     run.assert_not_called()
-    del os.environ["HATCH_JUPYTER_BUILDER_SKIP_NPM"]
+    del os.environ[env_name]
 
+
+def test_npm_build_skip_cli(mocker, repo):
+    which = mocker.patch("hatch_jupyter_builder.utils.which")
+    run = mocker.patch("hatch_jupyter_builder.utils.run")
+    which.return_value = "foo"
     sys.argv = [*sys.argv, "--skip-npm"]
     npm_builder("wheel", "standard", path=repo)
     run.assert_not_called()

@@ -33,6 +33,10 @@ def _get_log() -> logging.Logger:
     return _logger
 
 
+def _envvar_is_true(env_name: str) -> bool:
+    return os.environ.get(env_name, "").lower() in ("1", "true", "yes")
+
+
 def npm_builder(
     target_name: str,  # noqa: ARG001
     version: str,
@@ -43,6 +47,7 @@ def npm_builder(
     force: bool = False,
     npm: str | list[Any] | None = None,
     editable_build_cmd: str | None = None,
+    skip_if_env: str | None = None,
 ) -> None:
     """Build function for managing an npm installation.
 
@@ -65,6 +70,8 @@ def npm_builder(
         The npm command to build assets to the build_dir when building in editable mode.
     npm: str or list, optional.
         The npm executable name, or a tuple of ['node', executable].
+    skip_if_env: str, optional
+        Skip if this environment variable is set to "1", "true" or "yes"
 
     Notes
     -----
@@ -76,7 +83,11 @@ def npm_builder(
     abs_path = Path(path).resolve()
     log = _get_log()
 
-    if "--skip-npm" in sys.argv or os.environ.get("HATCH_JUPYTER_BUILDER_SKIP_NPM") == "1":
+    if (
+        "--skip-npm" in sys.argv
+        or _envvar_is_true("HATCH_JUPYTER_BUILDER_SKIP_NPM")
+        or (skip_if_env and _envvar_is_true(skip_if_env))
+    ):
         log.info("Skipping npm install as requested.")
         skip_npm = True
         if "--skip-npm" in sys.argv:
